@@ -5,3 +5,30 @@ from data_preprocessing import (circle_data,
                                 vertical_data)
 
 
+# calculate the total movement on one axis from a movement list
+def extract_total_movement(coord_list: tuple, coord_index: int) -> float:
+    # float to mat
+    res = 0.0
+    
+    # calculate the distances between one coordinate for every step and sum them up
+    for i in range(len(coord_list)-1):
+        res += coord_list[i+1][coord_index] - coord_list[i][coord_index]
+    
+    # sum of all 1-step distances = total movement
+    return res
+
+# receive a list of movement data lists and return a list of feature vectors
+def extract_features(data_list: list) -> list:
+    res = []
+    
+    # iterate over every movement in data list and create a 3-dimension 
+    # feature vector containing the total movement for each coordinate
+    for movement in data_list:
+        temp_total_movements = [extract_total_movement(movement, 0),
+                                extract_total_movement(movement, 1),
+                                extract_total_movement(movement, 2)]
+        res.append(temp_total_movements)
+    
+    return res
+
+print(extract_features(horizontal_data))
