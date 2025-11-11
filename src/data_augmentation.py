@@ -1,4 +1,7 @@
 import random
+
+from numpy.ma.core import max_val
+
 from data_preprocessing import horizontal_data
 from data_visualization import visualize_movement
 
@@ -15,4 +18,24 @@ def scale_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
                                     int(round(coord[1] * scale_factor)),
                                     int(round(coord[2] * scale_factor))))
 
+    return augemented_movement
+
+def jitter_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
+    augemented_movement = []
+
+    # the amount in mm the robot arm can jitter has a set maximum distance
+    max_jitter_distance = 5
+
+    # jitter randomly in 25% of the coordinates by the jitter distance
+    for coord in movement:
+        isjittering = random.uniform(0, 1) < 0.25
+        if isjittering:
+            augemented_movement.append((coord[0] + random.randint(-max_jitter_distance, max_jitter_distance),
+                                        coord[1] + random.randint(-max_jitter_distance, max_jitter_distance),
+                                        coord[2] + random.randint(-max_jitter_distance, max_jitter_distance)))
+
+        # just keeps the original coordinate if not jittering
+        else:
+            augemented_movement.append(coord)
+    
     return augemented_movement
