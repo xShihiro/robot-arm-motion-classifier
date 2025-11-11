@@ -1,7 +1,8 @@
 from pathlib import Path
 
-# important: use the path of the data directory you wanna useas Path parameter
-data_directory = Path("dataset#1")
+# important: use the path of the data directory you want to use as Path parameter
+project_root = Path(__file__).parent.parent
+data_directory = project_root / "dataset#1"
 
 # lists to fill the corresponding data in
 circle_data = []
@@ -38,8 +39,8 @@ def movement_into_tuple_list(filepath: str) -> list:
     
     return res
 
-# extract all the coordinates from a dataset and append to the rights data lists
-def fill_data_lists(dir: str):
+# extract all the coordinates from a dataset and append to the right data lists
+def fill_data_lists(dir: Path):
     
     # iterate over every data class and get the corresponding list name
     for directory in sorted(dir.iterdir()):
@@ -51,4 +52,6 @@ def fill_data_lists(dir: str):
             
 
 # fill the data lists with the chosen dataset
+print("\nprocessing the data..")
 fill_data_lists(data_directory)
+print("\ndata processed!")

@@ -39,6 +39,6 @@ def visualize_movement(coords_list, title="Movement"):
     # display the data
     plt.show()
 
-
-for i in range(len(horizontal_data)):
-    visualize_movement(horizontal_data[i])
+if __name__ == "__main__":
+    for i in range(len(horizontal_data)):
+        visualize_movement(horizontal_data[i])

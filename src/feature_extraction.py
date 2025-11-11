@@ -60,4 +60,3 @@ def prepare_all_data():
     
     # X is the concatened list of feature vectors, y the label list for X
     return X, y
-    
