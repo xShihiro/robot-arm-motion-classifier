@@ -31,11 +31,33 @@ def extract_features(data_list: list) -> list:
     
     return res
 
-
-# display all 5 lists of feature vectors for the corresponding class
-print()
-print(f"circle feature vectors: {extract_features(circle_data)}\n")
-print(f"diagonal left feature vectors: {extract_features(diagonal_left_data)}\n")
-print(f"diagonal right feature vectors: {extract_features(diagonal_right_data)}\n")
-print(f"horizontal feature vectors: {extract_features(horizontal_data)}\n")
-print(f"vertical left feature vectors: {extract_features(vertical_data)}\n")
+# exctract all features from data, initialize one X and create a corresponding label list y
+def prepare_all_data():
+    # extract features from all data lists
+    circle_features = extract_features(circle_data)
+    diagonal_left_features = extract_features(diagonal_left_data)
+    diagonal_right_features = extract_features(diagonal_right_data)
+    horizontal_features = extract_features(horizontal_data)
+    vertical_features = extract_features(vertical_data)
+    
+    # combine the data
+    X = (
+         circle_features +
+         diagonal_left_features + 
+         diagonal_right_features +
+         horizontal_features +
+         vertical_features
+    )
+    
+    # create the label list
+    y = (
+        ["circle"] * len(circle_features) +
+        ["diagonal_left"] * len(diagonal_left_features) +
+        ["diagonal_right"] * len(diagonal_right_features) +
+        ["horizontal"] * len(horizontal_features) +
+        ["vertical"] * len(vertical_features)
+    )
+    
+    # X is the concatened list of feature vectors, y the label list for X
+    return X, y
+    
