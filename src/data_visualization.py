@@ -1,3 +1,5 @@
+import matplotlib as mpl
+mpl.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from data_preprocessing import (circle_data, 
