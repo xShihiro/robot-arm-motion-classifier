@@ -3,14 +3,14 @@ from data_preprocessing import horizontal_data
 from data_visualization import visualize_movement
 
 # scale the movement isotropically or anisotropically by a random factor within a margin
-def scale_movement(movement: list[tuple[int]], isotropical=True, margin=2) -> list[tuple[int]]:
+def scale_movement(movement: list[tuple[int]], isotropical=True, margin=0.2) -> list[tuple[int]]:
     augmented_movement = []
 
-    # the scale factor is chosen randomly between 0.7 and 1.3 to not get too unrealistic
+    # the scale factor is chosen randomly in the margin to not get too unrealistic
     if isotropical:
         scale_factor_x = scale_factor_y = scale_factor_z = random.uniform(1 - margin, 1 + margin)
 
-    # the scale factor is chosen randomly between 0.8 and 1.2 to stay in the right class
+    # the scale factor is chosen randomly in the margin to stay in the right class
     else:
         scale_factor_x = random.uniform(1 - margin, 1 + margin)
         scale_factor_y = random.uniform(1 - margin, 1 + margin)
@@ -45,4 +45,6 @@ def jitter_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
     return augmented_movement
 
 #visualize_movement(horizontal_data[2])
-visualize_movement(scale_movement(horizontal_data[2]))
+visualize_movement(scale_movement(horizontal_data[2], isotropical=False))
+visualize_movement(scale_movement(horizontal_data[2], isotropical=False))
+visualize_movement(scale_movement(horizontal_data[2], isotropical=False))

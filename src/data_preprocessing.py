@@ -55,3 +55,4 @@ def fill_data_lists(dir: Path):
 print("\nprocessing the data..")
 fill_data_lists(data_directory)
 print("\ndata processed!")
+
