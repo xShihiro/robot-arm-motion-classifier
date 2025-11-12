@@ -30,10 +30,9 @@ def jitter_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
     # the amount in mm the robot arm can jitter has a set maximum distance
     max_jitter_distance = 10
 
-    # jitter randomly in 25% of the coordinates by the jitter distance
+    # jitter randomly in 40% of the coordinates by the jitter distance
     for coord in movement:
-        is_jittering = random.uniform(0, 1) < 0.25
-        if is_jittering:
+        if random.random() < 0.4:
             augmented_movement.append((coord[0] + random.randint(-max_jitter_distance, max_jitter_distance),
                                         coord[1] + random.randint(-max_jitter_distance, max_jitter_distance),
                                         coord[2] + random.randint(-max_jitter_distance, max_jitter_distance)))
@@ -46,11 +45,11 @@ def jitter_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
 
 # augment a movement by a random transformation
 def augment_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
+    rand = random.random()
 
-    rand = random.uniform(0, 1)
-    if rand < 0.33:
-        return scale_movement(movement, isotropical=True, margin=0.3)
-    elif rand < 0.66:
-        return scale_movement(movement, isotropical=False)
-    else:
+    if rand < 0.5:
         return jitter_movement(movement)
+    elif rand < 0.8:
+        return scale_movement(movement, isotropical=True, margin=0.15)
+    else:
+        return scale_movement(movement, isotropical=False, margin=0.1)

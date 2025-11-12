@@ -6,7 +6,6 @@ from data_preprocessing import (circle_data,
                                 horizontal_data,
                                 vertical_data)
 
-
 # calculate the total movement on one axis from a movement list
 def extract_total_movement(coord_list: tuple, coord_index: int) -> float:
     # float to mat
