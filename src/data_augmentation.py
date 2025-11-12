@@ -44,7 +44,13 @@ def jitter_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
 
     return augmented_movement
 
-#visualize_movement(horizontal_data[2])
-visualize_movement(scale_movement(horizontal_data[2], isotropical=False))
-visualize_movement(scale_movement(horizontal_data[2], isotropical=False))
-visualize_movement(scale_movement(horizontal_data[2], isotropical=False))
+# augment a movement by a random transformation
+def augment_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
+
+    rand = random.uniform(0, 1)
+    if rand < 0.33:
+        return scale_movement(movement, isotropical=True, margin=0.3)
+    elif rand < 0.66:
+        return scale_movement(movement, isotropical=False)
+    else:
+        return jitter_movement(movement)

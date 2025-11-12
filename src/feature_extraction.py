@@ -1,4 +1,6 @@
-from data_preprocessing import (circle_data, 
+from sklearn.model_selection import train_test_split
+from data_augmentation import augment_movement
+from data_preprocessing import (circle_data,
                                 diagonal_left_data,
                                 diagonal_right_data,
                                 horizontal_data,
@@ -31,32 +33,43 @@ def extract_features(data_list: list) -> list:
     
     return res
 
-# exctract all features from data, initialize one X and create a corresponding label list y
-def prepare_all_data():
-    # extract features from all data lists
-    circle_features = extract_features(circle_data)
-    diagonal_left_features = extract_features(diagonal_left_data)
-    diagonal_right_features = extract_features(diagonal_right_data)
-    horizontal_features = extract_features(horizontal_data)
-    vertical_features = extract_features(vertical_data)
-    
-    # combine the data
-    X = (
-         circle_features +
-         diagonal_left_features + 
-         diagonal_right_features +
-         horizontal_features +
-         vertical_features
+# split the data into training (70%), development (15%) and test set (15%), augment it and extract features
+def prepare_all_data(augment=False, n_augmentations=3) -> tuple[list, list, list, list, list, list]:
+    # combine the raw movement data
+    all_movement_data = (
+        circle_data +
+        diagonal_left_data +
+        diagonal_right_data +
+        horizontal_data +
+        vertical_data
     )
-    
+
     # create the label list
-    y = (
-        ["circle"] * len(circle_features) +
-        ["diagonal_left"] * len(diagonal_left_features) +
-        ["diagonal_right"] * len(diagonal_right_features) +
-        ["horizontal"] * len(horizontal_features) +
-        ["vertical"] * len(vertical_features)
+    all_labels = (
+        ["circle"] * len(circle_data) +
+        ["diagonal_left"] * len(diagonal_left_data) +
+        ["diagonal_right"] * len(diagonal_right_data) +
+        ["horizontal"] * len(horizontal_data) +
+        ["vertical"] * len(vertical_data)
     )
-    
+
+    # split the data into training (70%), development (15%) and test set (15%)
+    movements_train, movements_temp, labels_train, labels_temp = train_test_split(all_movement_data, all_labels, train_size=0.7, random_state=8)
+    movements_dev, movements_test, labels_dev, labels_test = train_test_split(movements_temp, labels_temp, train_size=0.5, random_state=8)
+
+    # augment the training data n times and append the corresponding labels
+    if augment:
+        original_train_length = len(movements_train)
+        for i in range(original_train_length):
+            for j in range(n_augmentations):
+                movements_train.append(augment_movement(movements_train[i]))
+                labels_train.append(labels_train[i])
+
+
+    # extract features from all data lists
+    X_train = extract_features(movements_train)
+    X_dev = extract_features(movements_dev)
+    X_test = extract_features(movements_test)
+
     # X is the concatened list of feature vectors, y the label list for X
-    return X, y
+    return X_train, X_dev, X_test, labels_train, labels_dev, labels_test
