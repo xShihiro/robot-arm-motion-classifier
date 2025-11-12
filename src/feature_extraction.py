@@ -34,7 +34,7 @@ def extract_features(data_list: list) -> list:
     return res
 
 # split the data into training (70%), development (15%) and test set (15%), augment it and extract features
-def prepare_all_data(augment=False, n_augmentations=3) -> tuple[list, list, list, list, list, list]:
+def prepare_all_data(augment=True, n_augmentations=3) -> tuple[list, list, list, list, list, list]:
     # combine the raw movement data
     all_movement_data = (
         circle_data +
@@ -54,8 +54,8 @@ def prepare_all_data(augment=False, n_augmentations=3) -> tuple[list, list, list
     )
 
     # split the data into training (70%), development (15%) and test set (15%)
-    movements_train, movements_temp, labels_train, labels_temp = train_test_split(all_movement_data, all_labels, train_size=0.7, random_state=8)
-    movements_dev, movements_test, labels_dev, labels_test = train_test_split(movements_temp, labels_temp, train_size=0.5, random_state=8)
+    movements_train, movements_temp, labels_train, labels_temp = train_test_split(all_movement_data, all_labels, train_size=0.7, random_state=8, shuffle=True)
+    movements_dev, movements_test, labels_dev, labels_test = train_test_split(movements_temp, labels_temp, train_size=0.5, random_state=8, shuffle=True)
 
     # augment the training data n times and append the corresponding labels
     if augment:
