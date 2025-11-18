@@ -33,43 +33,58 @@ def extract_features(data_list: list) -> list:
     
     return res
 
-# split the data into training (70%), development (15%) and test set (15%), augment it and extract features
-def prepare_all_data(augment=True, n_augmentations=3) -> tuple[list, list, list, list, list, list]:
-    # combine the raw movement data
+def prepare_all_data(augment: bool = True, n_augmentations: int = 3) -> tuple[list, list, list, list, list, list]:
+    """
+    New behavior:
+      - Build TRAIN ONLY from AUGMENTED data (no original trajectories).
+      - Build DEV and TEST as a 50/50 split of the FULL ORIGINAL dataset.
+    """
+
+    # 1) Combine ALL original movement data
     all_movement_data = (
-        circle_data +
-        diagonal_left_data +
-        diagonal_right_data +
-        horizontal_data +
-        vertical_data
+        circle_data
+        + diagonal_left_data
+        + diagonal_right_data
+        + horizontal_data
+        + vertical_data
     )
 
-    # create the label list
     all_labels = (
-        ["circle"] * len(circle_data) +
-        ["diagonal_left"] * len(diagonal_left_data) +
-        ["diagonal_right"] * len(diagonal_right_data) +
-        ["horizontal"] * len(horizontal_data) +
-        ["vertical"] * len(vertical_data)
+        ["circle"] * len(circle_data)
+        + ["diagonal_left"] * len(diagonal_left_data)
+        + ["diagonal_right"] * len(diagonal_right_data)
+        + ["horizontal"] * len(horizontal_data)
+        + ["vertical"] * len(vertical_data)
     )
 
-    # split the data into training (70%), development (15%) and test set (15%)
-    movements_train, movements_temp, labels_train, labels_temp = train_test_split(all_movement_data, all_labels, train_size=0.7, random_state=8, shuffle=True)
-    movements_dev, movements_test, labels_dev, labels_test = train_test_split(movements_temp, labels_temp, train_size=0.5, random_state=8, shuffle=True)
+    # 2) Build TRAIN from AUGMENTED data ONLY
+    movements_train = []
+    labels_train: list[str] = []
 
-    # augment the training data n times and append the corresponding labels
     if augment:
-        original_train_length = len(movements_train)
-        for i in range(original_train_length):
-            for j in range(n_augmentations):
-                movements_train.append(augment_movement(movements_train[i]))
-                labels_train.append(labels_train[i])
+        for movement, label in zip(all_movement_data, all_labels):
+            for _ in range(n_augmentations):
+                movements_train.append(augment_movement(movement))
+                labels_train.append(label)
+    else:
+        # If augment=False, fall back to using originals as train
+        movements_train = list(all_movement_data)
+        labels_train = list(all_labels)
 
+    # 3) Split ORIGINAL data 50/50 into DEV and TEST
+    #    (no originals used in train)
+    movements_dev, movements_test, labels_dev, labels_test = train_test_split(
+        all_movement_data,
+        all_labels,
+        train_size=0.5,
+        random_state=8,
+        shuffle=True,
+        stratify=all_labels,  # keep class balance if possible
+    )
 
-    # extract features from all data lists
+    # 4) Extract features
     X_train = extract_features(movements_train)
     X_dev = extract_features(movements_dev)
     X_test = extract_features(movements_test)
 
-    # X is the concatened list of feature vectors, y the label list for X
     return X_train, X_dev, X_test, labels_train, labels_dev, labels_test

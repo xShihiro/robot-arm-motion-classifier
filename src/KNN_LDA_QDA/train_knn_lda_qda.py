@@ -1,3 +1,4 @@
+# train_knn_lda_qda.py
 # Uses ONLY your provided feature_extraction.py + data_preprocessing.py
 # No custom feature engineering is added.
 import os
@@ -8,10 +9,6 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PARENT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 sys.path.append(PARENT_DIR)
 
-# Now imports work
-import data_preprocessing
-import feature_extraction
-
 import numpy as np
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -19,46 +16,44 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.ensemble import VotingClassifier
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-# ---- Your modules (unchanged) ----
-from data_preprocessing import (
-    circle_data,
-    diagonal_left_data,
-    diagonal_right_data,
-    horizontal_data,
-    vertical_data,
+from feature_extraction import prepare_all_data  # <-- uses your logic
+
+# plotting helpers
+from KNN_LDA_QDA.utils.confusion_matrix_heatmaps import plot_confusion_matrices
+from KNN_LDA_QDA.utils.feature_scatter_3d import plot_feature_scatter_3d
+from KNN_LDA_QDA.utils.model_comparison_bar import plot_model_comparison_bar
+from KNN_LDA_QDA.utils.train_dev_test_accuracy_plot import plot_accuracy_curves
+
+
+
+# -----------------------------
+# 1) Build dataset via prepare_all_data
+# -----------------------------
+# This already:
+#   - merges all classes,
+#   - splits into train/dev/test (70/15/15 or your new logic),
+#   - performs augmentation (if enabled),
+#   - extracts features.
+X_train, X_dev, X_test, y_train, y_dev, y_test = prepare_all_data(
+    augment=True,
+    n_augmentations=10
 )
-from feature_extraction import extract_features
 
-# -----------------------------
-# 1) Build dataset X, y
-# -----------------------------
-# Apply YOUR extractor to each class list; stack features; create labels.
-X_list = []
-y_list = []
+# Convert to numpy arrays for sklearn
+X_train = np.array(X_train, dtype=float)
+X_dev   = np.array(X_dev, dtype=float)
+X_test  = np.array(X_test, dtype=float)
 
-for feats in extract_features(circle_data):
-    X_list.append(feats); y_list.append("circle")
+y_train = np.array(y_train, dtype=str)
+y_dev   = np.array(y_dev, dtype=str)
+y_test  = np.array(y_test, dtype=str)
 
-for feats in extract_features(diagonal_left_data):
-    X_list.append(feats); y_list.append("diagonal_left")
+print(f"Train: {X_train.shape[0]} samples | Dev: {X_dev.shape[0]} | Test: {X_test.shape[0]}")
+print("Train class counts:", {c: sum(y_train == c) for c in np.unique(y_train)})
 
-for feats in extract_features(diagonal_right_data):
-    X_list.append(feats); y_list.append("diagonal_right")
-
-for feats in extract_features(horizontal_data):
-    X_list.append(feats); y_list.append("horizontal")
-
-for feats in extract_features(vertical_data):
-    X_list.append(feats); y_list.append("vertical")
-
-X = np.array(X_list, dtype=float)
-y = np.array(y_list, dtype=str)
-
-print(f"Loaded: {X.shape[0]} samples | feature dim = {X.shape[1]}")
-print("Class counts:", {c: sum(y==c) for c in np.unique(y)})
 
 # -----------------------------
 # 2) Define models
@@ -90,60 +85,159 @@ models = {
     "Ensemble(HardVote)": ensemble
 }
 
-# -----------------------------
-# 3) Train/test split & eval
-# -----------------------------
+# Dictionaries to store metrics
+train_accuracies: dict[str, float] = {}
+dev_accuracies: dict[str, float] = {}
+test_accuracies: dict[str, float] = {}
 
-# TODO: Create a util class to be use to give the results for the different model combination
-X_tr, X_te, y_tr, y_te = train_test_split(
-    X, y, test_size=0.25, random_state=42, stratify=y
-)
+conf_mats: dict[str, dict[str, np.ndarray]] = {}
 
+
+# -----------------------------
+# 3) Train on TRAIN, evaluate on DEV and TEST
+# -----------------------------
 for name, model in models.items():
-    model.fit(X_tr, y_tr)
-    y_pred = model.predict(X_te)
-    acc = accuracy_score(y_te, y_pred)
-    print(f"\n=== {name} ===")
-    print(f"Accuracy: {acc:.3f}")
-    print("Confusion Matrix:\n", confusion_matrix(y_te, y_pred))
-    print("Classification Report:\n", classification_report(y_te, y_pred, zero_division=0))
+    model.fit(X_train, y_train)
+
+    # --- TRAIN metrics ---
+    y_pred_train = model.predict(X_train)
+    acc_train = accuracy_score(y_train, y_pred_train)
+    cm_train = confusion_matrix(y_train, y_pred_train)
+
+    # --- DEV metrics ---
+    y_pred_dev = model.predict(X_dev)
+    acc_dev = accuracy_score(y_dev, y_pred_dev)
+    cm_dev = confusion_matrix(y_dev, y_pred_dev)
+
+    # --- TEST metrics ---
+    y_pred_test = model.predict(X_test)
+    acc_test = accuracy_score(y_test, y_pred_test)
+    cm_test = confusion_matrix(y_test, y_pred_test)
+
+    # Store in dicts
+    train_accuracies[name] = acc_train
+    dev_accuracies[name] = acc_dev
+    test_accuracies[name] = acc_test
+
+    conf_mats[name] = {
+        "train": cm_train,
+        "dev": cm_dev,
+        "test": cm_test
+    }
+
+    # Print nicely as before
+    print(f"\n=== {name} (Dev set) ===")
+    print(f"Dev Accuracy: {acc_dev:.3f}")
+    print("Dev Confusion Matrix:\n", cm_dev)
+    print("Dev Classification Report:\n",
+          classification_report(y_dev, y_pred_dev, zero_division=0))
+
+    print(f"\n=== {name} (Test set) ===")
+    print(f"Test Accuracy: {acc_test:.3f}")
+    print("Test Confusion Matrix:\n", cm_test)
+    print("Test Classification Report:\n",
+          classification_report(y_test, y_pred_test, zero_division=0))
+
 
 # -----------------------------
-# 4) 5-fold CV (overall comparison)
+# 4) 5-fold CV on TRAIN (overall comparison)
 # -----------------------------
-print("\n=== 5-fold Cross-Validation ===")
+print("\n=== 5-fold Cross-Validation on TRAIN ===")
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=123)
 for name, model in models.items():
-    scores = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
+    scores = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy")
     print(f"{name}: {scores.mean():.3f} ± {scores.std():.3f}")
 
-# -----------------------------
-# 5) Weighted voting (parallel, but stronger than hard vote)
-# -----------------------------
 
-# compute weights from CV on the *training* split
+# -----------------------------
+# 5) Weighted voting using TRAIN performance
+# -----------------------------
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=123)
-weights = {}
-for name, model in [('KNN', knn), ('LDA', lda), ('QDA', qda)]:
-    scores = cross_val_score(model, X_tr, y_tr, cv=cv, scoring='accuracy')
+weights: dict[str, float] = {}
+for name, model in [("KNN", knn), ("LDA", lda), ("QDA", qda)]:
+    scores = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy")
     weights[name] = scores.mean()
 print("Model weights (CV mean acc):", weights)
 
-def weighted_vote_predict(X):
+
+def weighted_vote_predict(X: np.ndarray) -> np.ndarray:
     # fit on full training split
-    knn.fit(X_tr, y_tr); lda.fit(X_tr, y_tr); qda.fit(X_tr, y_tr)
-    proba_sum = 0
-    # all 3 provide predict_proba
-    for w, mdl in [(weights['KNN'], knn), (weights['LDA'], lda), (weights['QDA'], qda)]:
+    knn.fit(X_train, y_train)
+    lda.fit(X_train, y_train)
+    qda.fit(X_train, y_train)
+
+    proba_sum = None
+    for w, mdl in [(weights["KNN"], knn),
+                   (weights["LDA"], lda),
+                   (weights["QDA"], qda)]:
         P = mdl.predict_proba(X)
-        proba_sum = proba_sum + w * P if isinstance(proba_sum, np.ndarray) else w * P
+        proba_sum = w * P if proba_sum is None else proba_sum + w * P
+
     y_hat_idx = proba_sum.argmax(axis=1)
     classes = knn.classes_  # same class order across models after fit
     return classes[y_hat_idx]
 
-y_hat_weighted = weighted_vote_predict(X_te)
-print("\n=== Weighted Vote ===")
-print("Accuracy:", accuracy_score(y_te, y_hat_weighted))
-print("Confusion Matrix:\n", confusion_matrix(y_te, y_hat_weighted))
-print("Classification Report:\n", classification_report(y_te, y_hat_weighted, zero_division=0))
 
+# --- Weighted vote metrics (train/dev/test) ---
+y_hat_weighted_train = weighted_vote_predict(X_train)
+y_hat_weighted_dev   = weighted_vote_predict(X_dev)
+y_hat_weighted_test  = weighted_vote_predict(X_test)
+
+acc_w_train = accuracy_score(y_train, y_hat_weighted_train)
+acc_w_dev   = accuracy_score(y_dev,   y_hat_weighted_dev)
+acc_w_test  = accuracy_score(y_test,  y_hat_weighted_test)
+
+cm_w_train = confusion_matrix(y_train, y_hat_weighted_train)
+cm_w_dev   = confusion_matrix(y_dev,   y_hat_weighted_dev)
+cm_w_test  = confusion_matrix(y_test,  y_hat_weighted_test)
+
+train_accuracies["WeightedVote"] = acc_w_train
+dev_accuracies["WeightedVote"]   = acc_w_dev
+test_accuracies["WeightedVote"]  = acc_w_test
+
+conf_mats["WeightedVote"] = {
+    "train": cm_w_train,
+    "dev": cm_w_dev,
+    "test": cm_w_test
+}
+
+print("\n=== Weighted Vote (Test set) ===")
+print("Accuracy:", acc_w_test)
+print("Confusion Matrix:\n", cm_w_test)
+print("Classification Report:\n",
+      classification_report(y_test, y_hat_weighted_test, zero_division=0))
+
+
+# -----------------------------
+# 6) Build accuracy dict for plotting
+# -----------------------------
+accuracy_dict: dict[str, dict[str, float]] = {}
+for name in ["KNN", "LDA", "QDA", "Ensemble(HardVote)", "WeightedVote"]:
+    accuracy_dict[name] = {
+        "train": train_accuracies[name],
+        "dev":   dev_accuracies[name],
+        "test":  test_accuracies[name],
+    }
+
+# Class names (sorted so they match confusion_matrix default ordering)
+all_labels = np.concatenate([y_train, y_dev, y_test])
+class_names = sorted(list(np.unique(all_labels)))
+
+
+# -----------------------------
+# 7) Call plotting scripts
+# -----------------------------
+
+# Script 1: Test accuracy bar plot
+plot_model_comparison_bar(test_accuracies=test_accuracies)
+
+# Script 2: confusion matrices – 1 figure per model, 3 heatmaps per figure
+plot_confusion_matrices(conf_mats, class_names)
+
+# Script 3: 3D feature scatter (use all data)
+X_all = np.vstack([X_train, X_dev, X_test])
+y_all = np.concatenate([y_train, y_dev, y_test])
+plot_feature_scatter_3d(X_all, y_all, title="3D Scatter of All Feature Vectors")
+
+# Script 4: Train vs Dev vs Test accuracy per model
+plot_accuracy_curves(accuracy_dict)
