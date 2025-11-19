@@ -4,14 +4,16 @@ import matplotlib.pyplot as plt
 
 from feature_extraction import prepare_all_data
 
-SHOW_TREE = True
-EVALUATE_TEST_SET = False
+SHOW_TREE = False
+EVALUATE_TEST_SET = True
+AUGMENT = True
+N_AUGMENTATIONS = 10
 
 
 def main():
     """Train the decision tree, evaluate on the dev set, and optionally display diagnostics."""
     X_train, X_dev, X_test, y_train, y_dev, y_test = prepare_all_data(
-        augment=True, n_augmentations=3
+        augment=AUGMENT, n_augmentations=N_AUGMENTATIONS
     )
 
     print(f"\nAmount of Data used for Training: {len(X_train)}")
@@ -20,6 +22,7 @@ def main():
 
     dtc = DecisionTreeClassifier(random_state=8)
     dtc.fit(X_train, y_train)
+    print("\nFeature importances:", dtc.feature_importances_)
 
     y_dev_pred = dtc.predict(X_dev)
 
@@ -43,6 +46,13 @@ def main():
                 "ratio_xy",
                 "ratio_xz",
                 "ratio_yz",
+                "axis_dx",
+                "axis_dy",
+                "axis_dz",
+                "axis_length",
+                "axis_ndx",
+                "axis_ndy",
+                "axis_ndz",
             ],
             class_names=[
                 "circle",

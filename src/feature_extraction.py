@@ -1,3 +1,4 @@
+import math
 from typing import List, Sequence, Tuple
 
 from sklearn.model_selection import train_test_split
@@ -31,6 +32,49 @@ def _safe_ratio(numerator: float, denominator: float) -> float:
     return numerator / denominator if denominator else 0.0
 
 
+def _squared_distance(
+    point_a: Tuple[int, int, int], point_b: Tuple[int, int, int]
+) -> int:
+    dx = point_a[0] - point_b[0]
+    dy = point_a[1] - point_b[1]
+    dz = point_a[2] - point_b[2]
+    return dx * dx + dy * dy + dz * dz
+
+
+def _find_extreme_points(
+    movement: Sequence[Tuple[int, int, int]],
+) -> tuple[Tuple[int, int, int], Tuple[int, int, int]]:
+    """Return two points within the movement that have the largest distance between them."""
+    extreme_a = movement[0]
+    extreme_b = movement[1]
+    max_distance = _squared_distance(extreme_a, extreme_b)
+
+    for i in range(len(movement)):
+        for j in range(i + 1, len(movement)):
+            distance = _squared_distance(movement[i], movement[j])
+            if distance > max_distance:
+                max_distance = distance
+                extreme_a = movement[i]
+                extreme_b = movement[j]
+
+    return extreme_a, extreme_b
+
+
+def _find_furthest_point(movement: Sequence[Tuple[int, int, int]], axis: int) -> int:
+    """Return the indice of the point where the given axis has the largest distance"""
+    start_coord = movement[0][axis]
+    max_distance = abs(movement[1][axis] - start_coord)
+    furthest_index = 1
+
+    for i in range(2, len(movement)):
+        distance = abs(movement[i][axis] - start_coord)
+        if distance > max_distance:
+            max_distance = distance
+            furthest_index = i
+
+    return furthest_index
+
+
 def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
     """Return a list of feature vectors for the provided movement sequences."""
     features: List[FeatureVector] = []
@@ -39,6 +83,19 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
         total_y = _extract_total_movement(movement, 1)
         total_z = _extract_total_movement(movement, 2)
 
+        axis_start, axis_end = _find_extreme_points(movement)
+        axis_dx = axis_end[0] - axis_start[0]
+        axis_dy = axis_end[1] - axis_start[1]
+        axis_dz = axis_end[2] - axis_start[2]
+        axis_length = math.sqrt(axis_dx**2 + axis_dy**2 + axis_dz**2)
+
+        peak_index_x = _find_furthest_point(movement, 0)
+        peak_index_y = _find_furthest_point(movement, 1)
+        peak_index_z = _find_furthest_point(movement, 2)
+        peak_dx = movement[peak_index_x][0] - movement[0][0]
+        peak_dy = movement[peak_index_y][1] - movement[0][1]
+        peak_dz = movement[peak_index_z][2] - movement[0][2]
+
         feature_vector = [
             total_x,
             total_y,
@@ -46,6 +103,16 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
             _safe_ratio(total_x, total_y),
             _safe_ratio(total_x, total_z),
             _safe_ratio(total_y, total_z),
+            axis_dx,
+            axis_dy,
+            axis_dz,
+            axis_length,
+            _safe_ratio(axis_dx, axis_length),
+            _safe_ratio(axis_dy, axis_length),
+            _safe_ratio(axis_dz, axis_length),
+            peak_dx,
+            peak_dy,
+            peak_dz,
         ]
         features.append(feature_vector)
 
