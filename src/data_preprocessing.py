@@ -4,8 +4,8 @@ from typing import Dict, List, Tuple
 Movement = List[Tuple[int, int, int]]
 
 # important: use the path of the data directory you want to use as Path parameter
-project_root = Path(__file__).parent.parent
-data_directory = project_root / "dataset_combined"
+PROJECT_ROOT = Path(__file__).parent.parent
+DATA_DIRECTORY = PROJECT_ROOT / "dataset_combined"
 
 # lists to fill the corresponding data in
 circle_data: List[Movement] = []
@@ -50,7 +50,7 @@ def _fill_data_lists(dataset_path: Path):
             target_list.append(_movement_into_tuple_list(str(filename)))
 
 
-def load_dataset(dataset_path: Path = data_directory):
+def load_dataset(dataset_path: Path = DATA_DIRECTORY):
     """Reload the movement datasets from disk."""
     for data_list in DIR_TO_LIST.values():
         data_list.clear()
