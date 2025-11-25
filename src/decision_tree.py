@@ -1,13 +1,20 @@
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 
-from feature_extraction import prepare_all_data
+from feature_extraction import FEATURE_NAMES, prepare_all_data
 
-SHOW_TREE = False
-EVALUATE_TEST_SET = True
+SHOW_TREE = True
+EVALUATE_TEST_SET = False
 AUGMENT = True
-N_AUGMENTATIONS = 10
+N_AUGMENTATIONS = 3
+CV_FOLDS = 5
+PARAM_GRID = {
+    "max_depth": [5, 6, 7, 8, 9, 10],
+    "min_samples_leaf": [2, 3, 4, 5, 6],
+    "min_samples_split": [4, 6, 8, 10],
+}
 
 
 def main():
@@ -20,8 +27,24 @@ def main():
     print(f"\nAmount of Data in Development Set: {len(X_dev)}")
     print(f"\nAmount of Data in Test Set: {len(X_test)}")
 
-    dtc = DecisionTreeClassifier(random_state=8)
-    dtc.fit(X_train, y_train)
+    grid = GridSearchCV(
+        DecisionTreeClassifier(random_state=8),
+        PARAM_GRID,
+        cv=CV_FOLDS,
+        scoring="accuracy",
+    )
+    grid.fit(X_train, y_train)
+
+    print("\nGrid search results:", grid.cv_results_)
+
+    print(
+        "\nBest hyperparameters found:",
+        grid.best_params_,
+        "with score",
+        grid.best_score_,
+    )
+
+    dtc = grid.best_estimator_
     print("\nFeature importances:", dtc.feature_importances_)
 
     y_dev_pred = dtc.predict(X_dev)
@@ -36,24 +59,11 @@ def main():
     print(confusion_matrix(y_dev, y_dev_pred))
 
     if SHOW_TREE:
+        feature_names = FEATURE_NAMES[: len(X_train[0])]
         plt.figure(figsize=(20, 10))
         plot_tree(
             dtc,
-            feature_names=[
-                "total_x",
-                "total_y",
-                "total_z",
-                "ratio_xy",
-                "ratio_xz",
-                "ratio_yz",
-                "axis_dx",
-                "axis_dy",
-                "axis_dz",
-                "axis_length",
-                "axis_ndx",
-                "axis_ndy",
-                "axis_ndz",
-            ],
+            feature_names=feature_names,
             class_names=[
                 "circle",
                 "diagonal_left",
@@ -63,7 +73,6 @@ def main():
             ],
             filled=True,
             fontsize=10,
-            max_depth=3,
         )
         plt.show()
 
@@ -71,6 +80,8 @@ def main():
         y_test_pred = dtc.predict(X_test)
         test_accuracy = accuracy_score(y_test, y_test_pred)
         print(f"\nAccuracy on test set: {test_accuracy:.2f}")
+        print("\nConfusion matrix:")
+        print(confusion_matrix(y_test, y_test_pred))
 
 
 if __name__ == "__main__":

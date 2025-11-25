@@ -16,6 +16,24 @@ from data_preprocessing import (
 
 Movement = List[Tuple[int, int, int]]
 FeatureVector = List[float]
+FEATURE_NAMES = [
+    "total_x",
+    "total_y",
+    "total_z",
+    "ratio_xy",
+    "ratio_xz",
+    "ratio_yz",
+    "axis_dx",
+    "axis_dy",
+    "axis_dz",
+    "axis_length",
+    "axis_ndx",
+    "axis_ndy",
+    "axis_ndz",
+    "peak_dx",
+    "peak_dy",
+    "peak_dz",
+]
 
 
 def _extract_total_movement(
@@ -29,12 +47,14 @@ def _extract_total_movement(
 
 
 def _safe_ratio(numerator: float, denominator: float) -> float:
+    """Return the ratio of 2 values, or 0.0 if denominator is zero."""
     return numerator / denominator if denominator else 0.0
 
 
 def _squared_distance(
     point_a: Tuple[int, int, int], point_b: Tuple[int, int, int]
 ) -> int:
+    """Return the squared distance between two 3D points."""
     dx = point_a[0] - point_b[0]
     dy = point_a[1] - point_b[1]
     dz = point_a[2] - point_b[2]
@@ -163,9 +183,10 @@ def prepare_all_data(
     if augment:
         original_train_length = len(movements_train)
         for i in range(original_train_length):
+            label = labels_train[i]
             for _ in range(n_augmentations):
-                movements_train.append(augment_movement(movements_train[i]))
-                labels_train.append(labels_train[i])
+                movements_train.append(augment_movement(movements_train[i], label))
+                labels_train.append(label)
 
     X_train = _extract_features(movements_train)
     X_dev = _extract_features(movements_dev)

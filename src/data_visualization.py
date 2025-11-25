@@ -78,6 +78,10 @@ if __name__ == "__main__":
         vertical_data,
         load_dataset,
     )
+    from data_augmentation import augment_movement
 
     load_dataset()
-    visualize_movements(horizontal_data)
+    data_len = len(circle_data)
+    for i in range(data_len):
+        circle_data.append(augment_movement(circle_data[i], "circle"))
+    visualize_movements(circle_data)
