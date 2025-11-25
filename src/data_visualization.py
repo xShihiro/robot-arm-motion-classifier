@@ -1,46 +1,87 @@
-import matplotlib as mpl
-mpl.use('Qt5Agg')
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from data_preprocessing import (circle_data, 
-                                diagonal_left_data,
-                                diagonal_right_data,
-                                horizontal_data,
-                                vertical_data)
+from typing import Iterable, Sequence, Tuple
 
-# visualize a movement from a coordinate list
-def visualize_movement(coords_list, title="Movement"):
+import matplotlib.pyplot as plt
+
+Coordinate = Tuple[int, int, int]
+Movement = Sequence[Coordinate]
+DEFAULT_AXIS_MARGIN = 1.2
+
+
+def _compute_axis_limit(
+    movements: Sequence[Movement], margin: float = DEFAULT_AXIS_MARGIN
+) -> float:
+    """Return a symmetric axis limit based on the maximum absolute coordinate."""
+    coords = [coord for movement in movements for coord in movement]
+    if not coords:
+        return 1.0
+
+    max_value = max(
+        max(abs(coord[0]), abs(coord[1]), abs(coord[2])) for coord in coords
+    )
+    return max_value * margin if max_value else 1.0
+
+
+def visualize_movement(
+    movement: Movement,
+    title: str = "Movement",
+    axis_limit: float | None = None,
+    margin: float = DEFAULT_AXIS_MARGIN,
+):
+    """Visualize a single movement in 3D."""
+    if axis_limit is None:
+        axis_limit = _compute_axis_limit([movement], margin=margin)
+
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    
-    # extract x, y, z
-    xs = [coord[0] for coord in coords_list]
-    ys = [coord[1] for coord in coords_list]
-    zs = [coord[2] for coord in coords_list]
-    
-    # plot the trajectory
-    ax.plot(xs, ys, zs, marker='o')
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax = fig.add_subplot(111, projection="3d")
+
+    xs = [coord[0] for coord in movement]
+    ys = [coord[1] for coord in movement]
+    zs = [coord[2] for coord in movement]
+
+    ax.plot(xs, ys, zs, marker="o")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
     ax.set_title(title)
-    
-    # same scaling for each axis
-    max_range = max(max(xs) - min(xs), 
-                    max(ys) - min(ys), 
-                    max(zs) - min(zs)) / 2
-    
-    mid_x = (max(xs) + min(xs)) / 2
-    mid_y = (max(ys) + min(ys)) / 2
-    mid_z = (max(zs) + min(zs)) / 2
-    
-    ax.set_xlim(mid_x - max_range, mid_x + max_range)
-    ax.set_ylim(mid_y - max_range, mid_y + max_range)
-    ax.set_zlim(mid_z - max_range, mid_z + max_range)
-    
-    # display the data
+
+    ax.set_xlim(-axis_limit, axis_limit)
+    ax.set_ylim(-axis_limit, axis_limit)
+    ax.set_zlim(-axis_limit, axis_limit)
+    ax.set_box_aspect((1, 1, 1))
+
     plt.show()
 
+
+def visualize_movements(
+    movements: Iterable[Movement],
+    *,
+    shared_axis_limit: float | None = None,
+    margin: float = DEFAULT_AXIS_MARGIN,
+):
+    """Visualize each movement in the iterable with shared axis limits."""
+    movements = list(movements)
+    if shared_axis_limit is None:
+        shared_axis_limit = _compute_axis_limit(movements, margin=margin)
+
+    for index, movement in enumerate(movements, start=1):
+        visualize_movement(
+            movement, title=f"Movement {index}", axis_limit=shared_axis_limit
+        )
+
+
 if __name__ == "__main__":
-    for i in range(len(horizontal_data)):
-        visualize_movement(horizontal_data[i])
+    from data_preprocessing import (
+        circle_data,
+        diagonal_left_data,
+        diagonal_right_data,
+        horizontal_data,
+        vertical_data,
+        load_dataset,
+    )
+    from data_augmentation import augment_movement
+
+    load_dataset()
+    data_len = len(circle_data)
+    for i in range(data_len):
+        circle_data.append(augment_movement(circle_data[i], "circle"))
+    visualize_movements(circle_data)
