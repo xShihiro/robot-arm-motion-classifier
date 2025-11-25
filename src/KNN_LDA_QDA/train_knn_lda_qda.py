@@ -240,4 +240,4 @@ y_all = np.concatenate([y_train, y_dev, y_test])
 plot_feature_scatter_3d(X_all, y_all, title="3D Scatter of All Feature Vectors")
 
 # Script 4: Train vs Dev vs Test accuracy per model
-plot_accuracy_curves(accuracy_dict)
+# plot_accuracy_curves(accuracy_dict)
