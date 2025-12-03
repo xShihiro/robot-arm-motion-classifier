@@ -5,15 +5,15 @@ import matplotlib.pyplot as plt
 
 from feature_extraction import FEATURE_NAMES, prepare_all_data
 
-SHOW_TREE = True
-EVALUATE_TEST_SET = False
+SHOW_TREE = False
+EVALUATE_TEST_SET = True
 AUGMENT = True
-N_AUGMENTATIONS = 3
+N_AUGMENTATIONS = 8
 CV_FOLDS = 5
 PARAM_GRID = {
-    "max_depth": [5, 6, 7, 8, 9, 10],
+    "max_depth": [3, 4, 5, 6, 7, 8, 9, 10],
     "min_samples_leaf": [2, 3, 4, 5, 6],
-    "min_samples_split": [4, 6, 8, 10],
+    "min_samples_split": [2, 4, 6, 8, 10],
 }
 
 
@@ -35,7 +35,7 @@ def main():
     )
     grid.fit(X_train, y_train)
 
-    print("\nGrid search results:", grid.cv_results_)
+    # print("\nGrid search results:", grid.cv_results_)
 
     print(
         "\nBest hyperparameters found:",

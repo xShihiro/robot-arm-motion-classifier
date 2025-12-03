@@ -116,13 +116,18 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
         peak_dy = movement[peak_index_y][1] - movement[0][1]
         peak_dz = movement[peak_index_z][2] - movement[0][2]
 
+        xy_ratio = _safe_ratio(total_x, total_y)
+        xz_ratio = _safe_ratio(total_x, total_z)
+        yz_ratio = _safe_ratio(total_y, total_z)
+
         feature_vector = [
-            total_x,
-            total_y,
-            total_z,
-            _safe_ratio(total_x, total_y),
-            _safe_ratio(total_x, total_z),
-            _safe_ratio(total_y, total_z),
+            # total_x,
+            # total_y,
+            # total_z,
+            xy_ratio,
+            xz_ratio,
+            yz_ratio,
+            # _safe_ratio(xy_ratio, _safe_ratio(xz_ratio, yz_ratio)),
             axis_dx,
             axis_dy,
             axis_dz,
