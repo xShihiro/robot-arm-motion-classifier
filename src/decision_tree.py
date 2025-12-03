@@ -1,6 +1,7 @@
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
 import matplotlib.pyplot as plt
 
 from feature_extraction import FEATURE_NAMES, prepare_all_data
@@ -8,12 +9,22 @@ from feature_extraction import FEATURE_NAMES, prepare_all_data
 SHOW_TREE = False
 EVALUATE_TEST_SET = True
 AUGMENT = True
-N_AUGMENTATIONS = 8
-CV_FOLDS = 5
+# getting similar results w/ n_aug = 2, CV_folds = 5 or 10 (test acc fluctuates between ~0.7 - ~0.85)
+N_AUGMENTATIONS = 3
+CV_FOLDS = 10
 PARAM_GRID = {
     "max_depth": [3, 4, 5, 6, 7, 8, 9, 10],
     "min_samples_leaf": [2, 3, 4, 5, 6],
     "min_samples_split": [2, 4, 6, 8, 10],
+}
+
+# Random Forest hyperparameters
+USE_RANDOM_FOREST = True
+RF_PARAM_GRID = {
+    "n_estimators": [50, 100, 200],
+    "max_depth": [3, 5, 7, None],
+    "min_samples_leaf": [1, 2, 3],
+    "min_samples_split": [2, 4, 6],
 }
 
 
@@ -35,27 +46,22 @@ def main():
     )
     grid.fit(X_train, y_train)
 
-    # print("\nGrid search results:", grid.cv_results_)
-
     print(
-        "\nBest hyperparameters found:",
+        "\nBest hyperparameters found (DecisionTree):",
         grid.best_params_,
         "with score",
         grid.best_score_,
     )
 
     dtc = grid.best_estimator_
-    print("\nFeature importances:", dtc.feature_importances_)
+    print("\nDecision Tree feature importances:", dtc.feature_importances_)
 
     y_dev_pred = dtc.predict(X_dev)
-
     dev_accuracy = accuracy_score(y_dev, y_dev_pred)
-    print(f"\nAccuracy on development set: {dev_accuracy:.2f}")
-
-    print("\nDetailed classification report:")
+    print(f"\n[DecisionTree] Accuracy on development set: {dev_accuracy:.2f}")
+    print("\n[DecisionTree] Detailed classification report:")
     print(classification_report(y_dev, y_dev_pred))
-
-    print("\nConfusion matrix:")
+    print("\n[DecisionTree] Confusion matrix:")
     print(confusion_matrix(y_dev, y_dev_pred))
 
     if SHOW_TREE:
@@ -79,9 +85,47 @@ def main():
     if EVALUATE_TEST_SET:
         y_test_pred = dtc.predict(X_test)
         test_accuracy = accuracy_score(y_test, y_test_pred)
-        print(f"\nAccuracy on test set: {test_accuracy:.2f}")
-        print("\nConfusion matrix:")
+        print(f"\n[DecisionTree] Accuracy on test set: {test_accuracy:.2f}")
+        print("\n[DecisionTree] Confusion matrix:")
         print(confusion_matrix(y_test, y_test_pred))
+
+    # ---------------- Random Forest ----------------
+    if USE_RANDOM_FOREST:
+        rf_grid = GridSearchCV(
+            RandomForestClassifier(random_state=8),
+            RF_PARAM_GRID,
+            cv=CV_FOLDS,
+            scoring="accuracy",
+            n_jobs=-1,
+        )
+        rf_grid.fit(X_train, y_train)
+
+        print(
+            "\nBest hyperparameters found (RandomForest):",
+            rf_grid.best_params_,
+            "with score",
+            rf_grid.best_score_,
+        )
+
+        rf = rf_grid.best_estimator_
+        print("\nRandom Forest feature importances:", rf.feature_importances_)
+
+        # Dev eval
+        y_dev_pred_rf = rf.predict(X_dev)
+        dev_accuracy_rf = accuracy_score(y_dev, y_dev_pred_rf)
+        print(f"\n[RandomForest] Accuracy on development set: {dev_accuracy_rf:.2f}")
+        print("\n[RandomForest] Detailed classification report:")
+        print(classification_report(y_dev, y_dev_pred_rf))
+        print("\n[RandomForest] Confusion matrix:")
+        print(confusion_matrix(y_dev, y_dev_pred_rf))
+
+        # Test eval
+        if EVALUATE_TEST_SET:
+            y_test_pred_rf = rf.predict(X_test)
+            test_accuracy_rf = accuracy_score(y_test, y_test_pred_rf)
+            print(f"\n[RandomForest] Accuracy on test set: {test_accuracy_rf:.2f}")
+            print("\n[RandomForest] Confusion matrix:")
+            print(confusion_matrix(y_test, y_test_pred_rf))
 
 
 if __name__ == "__main__":
