@@ -18,6 +18,8 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.ensemble import VotingClassifier
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.preprocessing import StandardScaler
+
 
 from feature_extraction import prepare_all_data  # <-- uses your logic
 
@@ -32,15 +34,19 @@ from KNN_LDA_QDA.utils.train_dev_test_accuracy_plot import plot_accuracy_curves
 # -----------------------------
 # 1) Build dataset via prepare_all_data
 # -----------------------------
-# This already:
-#   - merges all classes,
-#   - splits into train/dev/test (70/15/15 or your new logic),
-#   - performs augmentation (if enabled),
-#   - extracts features.
 X_train, X_dev, X_test, y_train, y_dev, y_test = prepare_all_data(
     augment=True,
-    n_augmentations=10
+    n_augmentations=3
 )
+
+# -----------------------------
+#  Normalize features
+# -----------------------------
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_dev = scaler.transform(X_dev)
+X_test = scaler.transform(X_test)
 
 # Convert to numpy arrays for sklearn
 X_train = np.array(X_train, dtype=float)
@@ -65,12 +71,12 @@ knn = Pipeline([
 
 lda = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf", LDA(solver="svd")),
+    ("clf", LDA(solver="lsqr", shrinkage="auto")),
 ])
 
 qda = Pipeline([
     ("scaler", StandardScaler()),
-    ("clf", QDA(reg_param=1e-3)),  # tiny regularization for stability
+    ("clf", QDA(reg_param=1e-1)),  # tiny regularization for stability
 ])
 
 ensemble = VotingClassifier(
@@ -232,12 +238,12 @@ class_names = sorted(list(np.unique(all_labels)))
 plot_model_comparison_bar(test_accuracies=test_accuracies)
 
 # Script 2: confusion matrices – 1 figure per model, 3 heatmaps per figure
-plot_confusion_matrices(conf_mats, class_names)
+#plot_confusion_matrices(conf_mats, class_names)
 
 # Script 3: 3D feature scatter (use all data)
 X_all = np.vstack([X_train, X_dev, X_test])
 y_all = np.concatenate([y_train, y_dev, y_test])
-plot_feature_scatter_3d(X_all, y_all, title="3D Scatter of All Feature Vectors")
+# plot_feature_scatter_3d(X_all, y_all, title="3D Scatter of All Feature Vectors")
 
 # Script 4: Train vs Dev vs Test accuracy per model
 # plot_accuracy_curves(accuracy_dict)
