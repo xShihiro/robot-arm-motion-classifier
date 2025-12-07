@@ -132,13 +132,13 @@ def _augment_circle(movement: Movement) -> Movement:
 
 def _augment_diagonal_left(movement: Movement) -> Movement:
     return _random_movement_transformation(
-        movement, isotropic=True, margin=DEFAULT_ANISOTROPIC_MARGIN
+        movement, isotropic=True, margin=DEFAULT_ISOTROPIC_MARGIN
     )
 
 
 def _augment_diagonal_right(movement: Movement) -> Movement:
     return _random_movement_transformation(
-        movement, isotropic=True, margin=DEFAULT_ANISOTROPIC_MARGIN
+        movement, isotropic=True, margin=DEFAULT_ISOTROPIC_MARGIN
     )
 
 
