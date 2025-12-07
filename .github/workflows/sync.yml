@@ -1,0 +1,59 @@
+name: Sync with Upstream
+
+on:
+  schedule:
+    - cron: '0 */1 * * *'  # sync once per hour
+  workflow_dispatch:        # allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote remove upstream || true
+          git remote add upstream https://github.com/theogrsjn/EuroFusion-AI.git
+
+      - name: Fetch all upstream branches and tags
+        run: |
+          git fetch upstream --prune --tags "+refs/heads/*:refs/remotes/upstream/*"
+
+      - name: Sync main (preserve workflow)
+        run: |
+          git checkout main || git checkout -b main
+
+          git merge upstream/main --no-edit || true
+
+          git push origin main
+
+      - name: Sync all other branches as mirror
+        run: |
+          for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/upstream/); do
+            branch=${ref#upstream/}
+
+            if [ "$branch" = "main" ]; then
+              continue
+            fi
+
+            echo "Syncing branch $branch"
+
+            git checkout -B "$branch" "upstream/$branch"
+            git push origin "$branch" --force
+          done
+
+      - name: Sync tags
+        run: |
+          echo "Syncing tags"
+          git push origin --tags --force
