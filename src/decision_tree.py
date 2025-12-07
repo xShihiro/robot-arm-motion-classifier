@@ -8,7 +8,7 @@ from feature_extraction import FEATURE_NAMES, prepare_all_data
 
 # Configuration
 AUGMENT = True
-N_AUGMENTATIONS = 30  # getting similar results w/ n_aug = 2, CV_folds = 5 or 10 (test acc fluctuates between ~0.7 - ~0.85)
+N_AUGMENTATIONS = 30
 CV_FOLDS = 5
 VISUALIZE_TREE = False
 TREE_INDEX_TO_SHOW = 0  # index of the tree in the forest to visualize
@@ -18,8 +18,8 @@ EVALUATE_TEST_SET = True
 RF_PARAM_GRID = {
     "n_estimators": [100, 200],
     "max_depth": [3, 5, 7, 9, None],
-    "min_samples_leaf": [1, 2, 3, 4, 5, 6],
-    "min_samples_split": [2, 4, 6, 8],
+    "min_samples_leaf": [1, 2, 3, 4],
+    "min_samples_split": [2, 4, 6],
     "max_features": ["sqrt", "log2"],
 }
 
@@ -79,9 +79,9 @@ def main():
     y_dev_pred_rf = rf.predict(X_dev)
     dev_accuracy_rf = accuracy_score(y_dev, y_dev_pred_rf)
     print(f"\n[RandomForest] Accuracy on development set: {dev_accuracy_rf:.2f}")
-    print("\n[RandomForest] Detailed classification report:")
+    print("\n[RandomForest] Dev Set Detailed classification report:")
     print(classification_report(y_dev, y_dev_pred_rf))
-    print("\n[RandomForest] Confusion matrix:")
+    print("\n[RandomForest] Dev Set Confusion matrix:")
     print(confusion_matrix(y_dev, y_dev_pred_rf))
 
     # Test eval
@@ -89,7 +89,9 @@ def main():
         y_test_pred_rf = rf.predict(X_test)
         test_accuracy_rf = accuracy_score(y_test, y_test_pred_rf)
         print(f"\n[RandomForest] Accuracy on test set: {test_accuracy_rf:.2f}")
-        print("\n[RandomForest] Confusion matrix:")
+        print("\n[RandomForest] Test Set Detailed classification report:")
+        print(classification_report(y_dev, y_dev_pred_rf))
+        print("\n[RandomForest] Test Set Confusion matrix:")
         print(confusion_matrix(y_test, y_test_pred_rf))
 
 

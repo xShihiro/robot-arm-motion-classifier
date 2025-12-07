@@ -293,7 +293,7 @@ def prepare_all_data(
     augment: bool = True, n_augmentations: int = 3
 ) -> tuple[list, list, list, list, list, list]:
     """
-    Split the data into training (60%), development (20%), and test (20%) sets,
+    Split the data into training (50%), development (25%), and test (25%) sets,
     optionally augment, and extract features.
     """
     load_dataset()
@@ -317,7 +317,7 @@ def prepare_all_data(
     movements_train, movements_temp, labels_train, labels_temp = train_test_split(
         all_movement_data,
         all_labels,
-        train_size=0.6,
+        train_size=0.5,
         stratify=all_labels,
         random_state=8,
         shuffle=True,
