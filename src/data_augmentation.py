@@ -7,10 +7,10 @@ import numpy as np
 Movement = List[Tuple[int, int, int]]
 Augmenter = Callable[[Movement], Movement]
 
-DEFAULT_ISOTROPIC_MARGIN = 0.15
-DEFAULT_ANISOTROPIC_MARGIN = 0.1
-MAX_JITTER_DISTANCE = 10
-JITTER_PROBABILITY = 0.4
+DEFAULT_ISOTROPIC_MARGIN = 0.1
+DEFAULT_ANISOTROPIC_MARGIN = 0.05
+MAX_JITTER_DISTANCE = 7
+JITTER_PROBABILITY = 0.3
 CIRCLE_TRANSLATION_RANGE = 20
 
 
@@ -132,13 +132,13 @@ def _augment_circle(movement: Movement) -> Movement:
 
 def _augment_diagonal_left(movement: Movement) -> Movement:
     return _random_movement_transformation(
-        movement, isotropic=False, margin=DEFAULT_ANISOTROPIC_MARGIN
+        movement, isotropic=True, margin=DEFAULT_ANISOTROPIC_MARGIN
     )
 
 
 def _augment_diagonal_right(movement: Movement) -> Movement:
     return _random_movement_transformation(
-        movement, isotropic=False, margin=DEFAULT_ANISOTROPIC_MARGIN
+        movement, isotropic=True, margin=DEFAULT_ANISOTROPIC_MARGIN
     )
 
 

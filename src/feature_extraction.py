@@ -17,24 +17,50 @@ from data_preprocessing import (
 Movement = List[Tuple[int, int, int]]
 FeatureVector = List[float]
 
-# Updated feature names to match the actual feature vector order below
+# Feature names in the same order as the feature vector assembled below
 FEATURE_NAMES = [
-    "ratio_xy",
-    "ratio_xz",
-    "ratio_yz",
-    "frac_x",       # total_x / (total_x + total_y + total_z)
-    "frac_y",       # total_y / ...
-    "frac_z",       # total_z / ...
+    "total_x_movement",
+    "total_y_movement",
+    "total_z_movement",
+    "path_length",
+    "ratio_x_over_y",
+    "ratio_x_over_z",
+    "ratio_y_over_z",
+    "frac_x_of_total",
+    "frac_y_of_total",
+    "frac_z_of_total",
     "axis_dx",
     "axis_dy",
     "axis_dz",
     "axis_length",
-    "axis_ndx",
-    "axis_ndy",
-    "axis_ndz",
-    "peak_dx",
-    "peak_dy",
-    "peak_dz",
+    "axis_dir_x",
+    "axis_dir_y",
+    "axis_dir_z",
+    "peak_dx_from_start",
+    "peak_dy_from_start",
+    "peak_dz_from_start",
+    "loopiness",
+    "radius_std",
+    "bbox_extent_x",
+    "bbox_extent_y",
+    "bbox_extent_z",
+    "bbox_ratio_x_over_y",
+    "bbox_ratio_x_over_z",
+    "bbox_ratio_y_over_z",
+    "frac_x_minus_y",
+    "frac_x_minus_z",
+    "frac_y_minus_z",
+    "dir_weighted_xy",
+    "dir_weighted_xz",
+    "dir_weighted_yz",
+    "peak_dx_normalized",
+    "peak_dy_normalized",
+    "peak_dz_normalized",
+    "axis_dx_sq",
+    "axis_dy_sq",
+    "axis_dz_sq",
+    "axis_dx_times_dz",
+    "axis_dy_times_dz",
 ]
 
 
@@ -106,18 +132,18 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
         total_y = _extract_total_movement(movement, 1)
         total_z = _extract_total_movement(movement, 2)
 
-        # Ratios between axes (already used)
+        # Ratios between axes
         xy_ratio = _safe_ratio(total_x, total_y)
         xz_ratio = _safe_ratio(total_x, total_z)
         yz_ratio = _safe_ratio(total_y, total_z)
 
-        # NEW: share of total movement per axis
+        # Share of total movement per axis
         total_sum = total_x + total_y + total_z
         frac_x = _safe_ratio(total_x, total_sum)
         frac_y = _safe_ratio(total_y, total_sum)
         frac_z = _safe_ratio(total_z, total_sum)
 
-        # Longest axis between any two points (global “direction” of movement)
+        # Longest axis between the two farthest points
         axis_start, axis_end = _find_extreme_points(movement)
         axis_dx = axis_end[0] - axis_start[0]
         axis_dy = axis_end[1] - axis_start[1]
@@ -137,17 +163,44 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
         peak_dy = movement[peak_index_y][1] - movement[0][1]
         peak_dz = movement[peak_index_z][2] - movement[0][2]
 
+        # The whole path length
+        path_length = 0.0
+        for i in range(len(movement) - 1):
+            segment_dx = movement[i + 1][0] - movement[i][0]
+            segment_dy = movement[i + 1][1] - movement[i][1]
+            segment_dz = movement[i + 1][2] - movement[i][2]
+            path_length += math.sqrt(segment_dx**2 + segment_dy**2 + segment_dz**2)
+
+        # epsilon to avoid things like divisions by zero
         eps = 1e-6
 
-        # Loopiness (path length vs net displacement)
-        net_disp = abs(axis_dx) + abs(axis_dy) + abs(axis_dz) + eps
-        loopiness = axis_length / net_disp
+        # Loopiness (path length vs axis length), high for circles, lower for straight-ish motions
+        loopiness = path_length / (axis_length + eps)
 
-        # Bounding box aspect ratios (assuming bbox_x, bbox_y, bbox_z exist)
+        # all values per coord
         x_vals = [p[0] for p in movement]
         y_vals = [p[1] for p in movement]
         z_vals = [p[2] for p in movement]
 
+        # approximate center of the trajectory
+        center_x = sum(x_vals) / len(movement)
+        center_y = sum(y_vals) / len(movement)
+        center_z = sum(z_vals) / len(movement)
+
+        # distances of all points from the center
+        radii = []
+        for x, y, z in movement:
+            dx_c = x - center_x
+            dy_c = y - center_y
+            dz_c = z - center_z
+            radii.append(math.sqrt(dx_c * dx_c + dy_c * dy_c + dz_c * dz_c))
+
+        # radius consistency: low for circular trajectories, higher for line-ish paths
+        mean_radius = sum(radii) / len(radii)
+        radius_var = sum((r - mean_radius) ** 2 for r in radii) / len(radii)
+        radius_std = math.sqrt(radius_var + eps)
+
+        # Bounding box aspect ratios
         bbox_x = max(x_vals) - min(x_vals)
         bbox_y = max(y_vals) - min(y_vals)
         bbox_z = max(z_vals) - min(z_vals)
@@ -172,57 +225,62 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
         peak_dz_norm = peak_dz / (abs(axis_dz) + eps)
 
         feature_vector = [
-            # --- original features ---
+            # Total movement per axis
+            total_x,
+            total_y,
+            total_z,
+            # length of the path
+            path_length,
+            # Ratios between axes
             xy_ratio,
             xz_ratio,
             yz_ratio,
+            # Share of total movement per axis
             frac_x,
             frac_y,
             frac_z,
+            # axis lengths between extreme points
             axis_dx,
             axis_dy,
             axis_dz,
+            # total axis length between extreme points
             axis_length,
+            # normalized axis directions
             axis_ndx,
             axis_ndy,
             axis_ndz,
+            # peak displacements along each axis from the starting point
             peak_dx,
             peak_dy,
             peak_dz,
-
-            # --- NEW: circle vs line geometry ---
-            loopiness,  # HIGH for circles, lower for straight-ish motions
-
-            # --- NEW: bounding box & shape ---
+            # circle vs line geometry
+            loopiness,
+            radius_std,
+            # bounding boxes of every axis and their ratios
             bbox_x,
             bbox_y,
             bbox_z,
             bbox_xy_ratio,
             bbox_xz_ratio,
             bbox_yz_ratio,
-
-            # --- NEW: per-axis movement balance ---
+            # per-axis movement balance
             frac_x_minus_y,
             frac_x_minus_z,
             frac_y_minus_z,
-
-            # --- NEW: direction-weighted fractions ---
+            # direction-weighted fractions
             dir_xy,
             dir_xz,
             dir_yz,
-
-            # --- NEW: normalized peaks ---
+            # normalized peaks
             peak_dx_norm,
             peak_dy_norm,
             peak_dz_norm,
-
-            # You can comment these in/out to test:
-            # (Keep total length + loopiness, maybe drop some raw axes to reduce collinearity)
-
-            axis_dx ** 2,
-            axis_dy ** 2,
-            axis_dz ** 2,
-            (axis_dx * axis_dz),   # correlation between X and Z (diagonals)
+            # squared axis displacements
+            axis_dx**2,
+            axis_dy**2,
+            axis_dz**2,
+            # cross-axis correlation between X/Y and Z (diagonals)
+            (axis_dx * axis_dz),
             (axis_dy * axis_dz),
         ]
 
@@ -235,7 +293,7 @@ def prepare_all_data(
     augment: bool = True, n_augmentations: int = 3
 ) -> tuple[list, list, list, list, list, list]:
     """
-    Split the data into training (30%), development (35%), and test (35%) sets,
+    Split the data into training (60%), development (20%), and test (20%) sets,
     optionally augment, and extract features.
     """
     load_dataset()
@@ -259,7 +317,7 @@ def prepare_all_data(
     movements_train, movements_temp, labels_train, labels_temp = train_test_split(
         all_movement_data,
         all_labels,
-        train_size=0.3,
+        train_size=0.6,
         stratify=all_labels,
         random_state=8,
         shuffle=True,

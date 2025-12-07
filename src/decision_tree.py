@@ -11,8 +11,8 @@ EVALUATE_TEST_SET = True
 AUGMENT = True
 # getting similar results w/ n_aug = 2, CV_folds = 5 or 10 (test acc fluctuates between ~0.7 - ~0.85)
 N_AUGMENTATIONS = 3
-CV_FOLDS = 10
-PARAM_GRID = {
+CV_FOLDS = 5
+DT_PARAM_GRID = {
     "max_depth": [3, 4, 5, 6, 7, 8, 9, 10],
     "min_samples_leaf": [2, 3, 4, 5, 6],
     "min_samples_split": [2, 4, 6, 8, 10],
@@ -22,9 +22,9 @@ PARAM_GRID = {
 USE_RANDOM_FOREST = True
 RF_PARAM_GRID = {
     "n_estimators": [50, 100, 200],
-    "max_depth": [3, 5, 7, None],
-    "min_samples_leaf": [1, 2, 3],
-    "min_samples_split": [2, 4, 6],
+    "max_depth": [None, 3, 5, 7, 9],
+    "min_samples_leaf": [1, 2, 3, 4, 5, 6],
+    "min_samples_split": [2, 4, 6, 8, 10],
 }
 
 
@@ -40,7 +40,7 @@ def main():
 
     grid = GridSearchCV(
         DecisionTreeClassifier(random_state=8),
-        PARAM_GRID,
+        DT_PARAM_GRID,
         cv=CV_FOLDS,
         scoring="accuracy",
     )
