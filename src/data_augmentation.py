@@ -1,10 +1,10 @@
 import math
 import random
-from typing import Callable, Dict, List, Tuple
+from typing import Callable
 
 import numpy as np
 
-Movement = List[Tuple[int, int, int]]
+Movement = list[tuple[int, int, int]]
 Augmenter = Callable[[Movement], Movement]
 
 DEFAULT_ISOTROPIC_MARGIN = 0.1
@@ -154,7 +154,7 @@ def _augment_vertical(movement: Movement) -> Movement:
     )
 
 
-CLASS_AUGMENTERS: Dict[str, Augmenter] = {
+CLASS_AUGMENTERS: dict[str, Augmenter] = {
     "circle": _augment_circle,
     "diagonal_left": _augment_diagonal_left,
     "diagonal_right": _augment_diagonal_right,
@@ -165,5 +165,5 @@ CLASS_AUGMENTERS: Dict[str, Augmenter] = {
 
 def augment_movement(movement: Movement, label: str) -> Movement:
     """Augment a movement using the class-specific strategy."""
-    augmenter = CLASS_AUGMENTERS.get(label)
+    augmenter = CLASS_AUGMENTERS[label]
     return augmenter(movement)

@@ -1,8 +1,8 @@
-from typing import Iterable, Sequence, Tuple
+from collections.abc import Iterable, Sequence
 
 import matplotlib.pyplot as plt
 
-Coordinate = Tuple[int, int, int]
+Coordinate = tuple[int, int, int]
 Movement = Sequence[Coordinate]
 DEFAULT_AXIS_MARGIN = 1.2
 
@@ -26,7 +26,7 @@ def visualize_movement(
     title: str = "Movement",
     axis_limit: float | None = None,
     margin: float = DEFAULT_AXIS_MARGIN,
-):
+) -> None:
     """Visualize a single movement in 3D."""
     if axis_limit is None:
         axis_limit = _compute_axis_limit([movement], margin=margin)
@@ -57,7 +57,7 @@ def visualize_movements(
     *,
     shared_axis_limit: float | None = None,
     margin: float = DEFAULT_AXIS_MARGIN,
-):
+) -> None:
     """Visualize each movement in the iterable with shared axis limits."""
     movements = list(movements)
     if shared_axis_limit is None:

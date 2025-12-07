@@ -1,21 +1,20 @@
 from pathlib import Path
-from typing import Dict, List, Tuple
 
-Movement = List[Tuple[int, int, int]]
+Movement = list[tuple[int, int, int]]
 
 # important: use the path of the data directory you want to use as Path parameter
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIRECTORY = PROJECT_ROOT / "dataset_combined"
 
 # lists to fill the corresponding data in
-circle_data: List[Movement] = []
-diagonal_left_data: List[Movement] = []
-diagonal_right_data: List[Movement] = []
-horizontal_data: List[Movement] = []
-vertical_data: List[Movement] = []
+circle_data: list[Movement] = []
+diagonal_left_data: list[Movement] = []
+diagonal_right_data: list[Movement] = []
+horizontal_data: list[Movement] = []
+vertical_data: list[Movement] = []
 
 # Map directory names to list names
-DIR_TO_LIST: Dict[str, List[Movement]] = {
+DIR_TO_LIST: dict[str, list[Movement]] = {
     "circle": circle_data,
     "diagonal_left": diagonal_left_data,
     "diagonal_right": diagonal_right_data,
@@ -24,7 +23,7 @@ DIR_TO_LIST: Dict[str, List[Movement]] = {
 }
 
 
-def _movement_into_tuple_list(filepath: str) -> Movement:
+def movement_into_tuple_list(filepath: str) -> Movement:
     """Extract the XYZ coordinates from a single file into a list of tuples."""
     res: Movement = []
 
@@ -41,16 +40,16 @@ def _movement_into_tuple_list(filepath: str) -> Movement:
     return res
 
 
-def _fill_data_lists(dataset_path: Path):
+def _fill_data_lists(dataset_path: Path) -> None:
     """Extract all coordinates from the dataset and append them to the class lists."""
     for directory in sorted(dataset_path.iterdir()):
         target_list = DIR_TO_LIST.get(directory.name)
 
         for filename in sorted(directory.iterdir()):
-            target_list.append(_movement_into_tuple_list(str(filename)))
+            target_list.append(movement_into_tuple_list(str(filename)))
 
 
-def load_dataset(dataset_path: Path = DATA_DIRECTORY):
+def load_dataset(dataset_path: Path = DATA_DIRECTORY) -> None:
     """Reload the movement datasets from disk."""
     for data_list in DIR_TO_LIST.values():
         data_list.clear()

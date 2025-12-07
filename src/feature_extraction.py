@@ -1,5 +1,5 @@
 import math
-from typing import List, Sequence, Tuple
+from typing import Sequence
 
 from sklearn.model_selection import train_test_split
 
@@ -13,9 +13,8 @@ from data_preprocessing import (
     horizontal_data,
     vertical_data,
 )
-
-Movement = List[Tuple[int, int, int]]
-FeatureVector = List[float]
+Movement = list[tuple[int, int, int]]
+FeatureVector = list[float]
 
 # Feature names in the same order as the feature vector assembled below
 FEATURE_NAMES = [
@@ -65,7 +64,7 @@ FEATURE_NAMES = [
 
 
 def _extract_total_movement(
-    coord_list: Sequence[Tuple[int, int, int]], coord_index: int
+    coord_list: Sequence[tuple[int, int, int]], coord_index: int
 ) -> float:
     """Calculate the total movement on one axis for a single movement list."""
     total = 0.0
@@ -80,7 +79,7 @@ def _safe_ratio(numerator: float, denominator: float) -> float:
 
 
 def _squared_distance(
-    point_a: Tuple[int, int, int], point_b: Tuple[int, int, int]
+    point_a: tuple[int, int, int], point_b: tuple[int, int, int]
 ) -> int:
     """Return the squared distance between two 3D points."""
     dx = point_a[0] - point_b[0]
@@ -90,8 +89,8 @@ def _squared_distance(
 
 
 def _find_extreme_points(
-    movement: Sequence[Tuple[int, int, int]],
-) -> tuple[Tuple[int, int, int], Tuple[int, int, int]]:
+    movement: Sequence[tuple[int, int, int]],
+) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
     """Return two points within the movement that have the largest distance between them."""
     extreme_a = movement[0]
     extreme_b = movement[1]
@@ -108,7 +107,7 @@ def _find_extreme_points(
     return extreme_a, extreme_b
 
 
-def _find_furthest_point(movement: Sequence[Tuple[int, int, int]], axis: int) -> int:
+def _find_furthest_point(movement: Sequence[tuple[int, int, int]], axis: int) -> int:
     """Return the index of the point where the given axis has the largest distance from the start."""
     start_coord = movement[0][axis]
     max_distance = abs(movement[1][axis] - start_coord)
@@ -123,9 +122,9 @@ def _find_furthest_point(movement: Sequence[Tuple[int, int, int]], axis: int) ->
     return furthest_index
 
 
-def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
+def extract_features(data_list: Sequence[Movement]) -> list[FeatureVector]:
     """Return a list of feature vectors for the provided movement sequences."""
-    features: List[FeatureVector] = []
+    features: list[FeatureVector] = []
     for movement in data_list:
         # Total movement per axis
         total_x = _extract_total_movement(movement, 0)
@@ -291,14 +290,14 @@ def _extract_features(data_list: Sequence[Movement]) -> List[FeatureVector]:
 
 def prepare_all_data(
     augment: bool = True, n_augmentations: int = 3
-) -> tuple[list, list, list, list, list, list]:
+) -> tuple[list[FeatureVector], list[FeatureVector], list[FeatureVector], list[str], list[str], list[str]]:
     """
     Split the data into training (50%), development (25%), and test (25%) sets,
     optionally augment, and extract features.
     """
     load_dataset()
 
-    all_movement_data: List[Movement] = (
+    all_movement_data: list[Movement] = (
         circle_data
         + diagonal_left_data
         + diagonal_right_data
@@ -339,8 +338,8 @@ def prepare_all_data(
                 movements_train.append(augment_movement(movements_train[i], label))
                 labels_train.append(label)
 
-    X_train = _extract_features(movements_train)
-    X_dev = _extract_features(movements_dev)
-    X_test = _extract_features(movements_test)
+    X_train = extract_features(movements_train)
+    X_dev = extract_features(movements_dev)
+    X_test = extract_features(movements_test)
 
     return X_train, X_dev, X_test, labels_train, labels_dev, labels_test
