@@ -1,3 +1,5 @@
+"""visaualize movement data in 3D to inspect the dataset."""
+
 from collections.abc import Iterable, Sequence
 
 import matplotlib.pyplot as plt

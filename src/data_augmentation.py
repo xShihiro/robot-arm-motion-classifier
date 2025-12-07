@@ -1,3 +1,5 @@
+"""augmentation for every type of movement data."""
+
 import math
 import random
 from typing import Callable

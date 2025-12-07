@@ -1,3 +1,5 @@
+"""Extract features from movement data for model training and evaluation."""
+
 import math
 from typing import Sequence
 
@@ -13,6 +15,7 @@ from data_preprocessing import (
     horizontal_data,
     vertical_data,
 )
+
 Movement = list[tuple[int, int, int]]
 FeatureVector = list[float]
 
@@ -288,9 +291,14 @@ def extract_features(data_list: Sequence[Movement]) -> list[FeatureVector]:
     return features
 
 
-def prepare_all_data(
-    augment: bool = True, n_augmentations: int = 3
-) -> tuple[list[FeatureVector], list[FeatureVector], list[FeatureVector], list[str], list[str], list[str]]:
+def prepare_all_data(augment: bool = True, n_augmentations: int = 3) -> tuple[
+    list[FeatureVector],
+    list[FeatureVector],
+    list[FeatureVector],
+    list[str],
+    list[str],
+    list[str],
+]:
     """
     Split the data into training (50%), development (25%), and test (25%) sets,
     optionally augment, and extract features.

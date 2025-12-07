@@ -1,3 +1,5 @@
+"""Tweak and build the Random Forest model"""
+
 import matplotlib.pyplot as plt
 from typing import Any
 

@@ -1,3 +1,5 @@
+"""Extract and preprocess movement data from files in the dataset directory."""
+
 from pathlib import Path
 
 Movement = list[tuple[int, int, int]]
