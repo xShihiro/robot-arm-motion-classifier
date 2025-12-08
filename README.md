@@ -13,7 +13,7 @@ Each movement trajectory is transformed into a 42-dimensional handcrafted featur
 - **Per-axis movement fractions** and directional balance terms
 - **Loopiness** (ratio of path length to straight-line axis length) to distinguish curved from linear motions
 - **Radius statistics** (mean and variance of radial distances) for detecting circular trajectories
-- Additional squared and cross-axis terms to capture nonlinear and correlated spatial effects
+- Additional squared and cross-axis terms to capture nonlinear and correlated spatial effects easier
 
 All features are translation-invariant and robust to noise, providing strong geometric separation between circle, diagonal, horizontal, and vertical classes.
 
@@ -24,10 +24,9 @@ The search explored different model complexities (tree depth, number of estimato
 
 The best configuration –  
 `n_estimators=200`, `max_depth=7`, `max_features="sqrt"`, `min_samples_leaf=1`, `min_samples_split=2` –  
-demonstrated stable performance across development and test sets, indicating good generalization.
+consistently produced high accuracy on both development and test sets, indicating good generalization.
 
 For the final demo model, these hyperparameters are fixed and the classifier is retrained on **all** available labeled data to maximize predictive performance on unseen trajectories.
-
 
 ## Setup
 ```bash
