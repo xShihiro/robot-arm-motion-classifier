@@ -1,56 +1,171 @@
+"""augmentation for every type of movement data."""
+
+import math
 import random
-from data_preprocessing import horizontal_data
-from data_visualization import visualize_movement
+from typing import Callable
 
-# scale the movement isotropically or anisotropically by a random factor within a margin
-def scale_movement(movement: list[tuple[int]], isotropical=True, margin=0.2) -> list[tuple[int]]:
-    augmented_movement = []
+import numpy as np
 
-    # the scale factor is chosen randomly in the margin to not get too unrealistic
-    if isotropical:
-        scale_factor_x = scale_factor_y = scale_factor_z = random.uniform(1 - margin, 1 + margin)
+Movement = list[tuple[int, int, int]]
+Augmenter = Callable[[Movement], Movement]
 
-    # the scale factor is chosen randomly in the margin to stay in the right class
-    else:
+DEFAULT_ISOTROPIC_MARGIN = 0.1
+DEFAULT_ANISOTROPIC_MARGIN = 0.05
+MAX_JITTER_DISTANCE = 7
+JITTER_PROBABILITY = 0.3
+CIRCLE_TRANSLATION_RANGE = 20
+
+
+def _scale_movement(
+    movement: Movement, isotropic: bool = True, margin: float = 0.2
+) -> Movement:
+    """Scale the movement isotropically or per axis inside the provided margin."""
+    scale_factor_x = scale_factor_y = scale_factor_z = random.uniform(
+        1 - margin, 1 + margin
+    )
+    if not isotropic:
         scale_factor_x = random.uniform(1 - margin, 1 + margin)
         scale_factor_y = random.uniform(1 - margin, 1 + margin)
         scale_factor_z = random.uniform(1 - margin, 1 + margin)
 
-    # scale each coordinate by the scale factor
+    augmented_movement: Movement = []
     for coord in movement:
-        augmented_movement.append((int(round(coord[0] * scale_factor_x)),
-                                    int(round(coord[1] * scale_factor_y)),
-                                    int(round(coord[2] * scale_factor_z))))
+        augmented_movement.append(
+            (
+                int(round(coord[0] * scale_factor_x)),
+                int(round(coord[1] * scale_factor_y)),
+                int(round(coord[2] * scale_factor_z)),
+            )
+        )
 
     return augmented_movement
 
-def jitter_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
-    augmented_movement = []
 
-    # the amount in mm the robot arm can jitter has a set maximum distance
-    max_jitter_distance = 10
-
-    # jitter randomly in 25% of the coordinates by the jitter distance
+def _jitter_movement(movement: Movement) -> Movement:
+    """Jitter random coordinates inside the allowed maximum distance."""
+    augmented_movement: Movement = []
     for coord in movement:
-        is_jittering = random.uniform(0, 1) < 0.25
-        if is_jittering:
-            augmented_movement.append((coord[0] + random.randint(-max_jitter_distance, max_jitter_distance),
-                                        coord[1] + random.randint(-max_jitter_distance, max_jitter_distance),
-                                        coord[2] + random.randint(-max_jitter_distance, max_jitter_distance)))
-
-        # just keeps the original coordinate if not jittering
+        if random.random() < JITTER_PROBABILITY:
+            augmented_movement.append(
+                (
+                    coord[0]
+                    + random.randint(-MAX_JITTER_DISTANCE, MAX_JITTER_DISTANCE),
+                    coord[1]
+                    + random.randint(-MAX_JITTER_DISTANCE, MAX_JITTER_DISTANCE),
+                    coord[2]
+                    + random.randint(-MAX_JITTER_DISTANCE, MAX_JITTER_DISTANCE),
+                )
+            )
         else:
             augmented_movement.append(coord)
-
     return augmented_movement
 
-# augment a movement by a random transformation
-def augment_movement(movement: list[tuple[int]]) -> list[tuple[int]]:
 
-    rand = random.uniform(0, 1)
-    if rand < 0.33:
-        return scale_movement(movement, isotropical=True, margin=0.3)
-    elif rand < 0.66:
-        return scale_movement(movement, isotropical=False)
+def _random_movement_transformation(
+    movement: Movement, isotropic: bool, margin: float
+) -> Movement:
+    """Apply jitter/scale/both at random to diversify augmentation."""
+    choice = random.random()
+    augmented = movement
+    if choice < 0.33:
+        augmented = _jitter_movement(movement)
+    elif choice < 0.66:
+        augmented = _scale_movement(movement, isotropic=isotropic, margin=margin)
     else:
-        return jitter_movement(movement)
+        augmented = _jitter_movement(movement)
+        augmented = _scale_movement(augmented, isotropic=isotropic, margin=margin)
+    return augmented
+
+
+def _initialize_random_rotation_matrix() -> np.ndarray:
+    """Return a 3x3 rotation matrix constructed from random Euler angles."""
+    angle_x, angle_y, angle_z = np.random.uniform(0, 2 * math.pi, size=3)
+
+    cos_x, sin_x = math.cos(angle_x), math.sin(angle_x)
+    cos_y, sin_y = math.cos(angle_y), math.sin(angle_y)
+    cos_z, sin_z = math.cos(angle_z), math.sin(angle_z)
+
+    rotation_x = np.array(
+        [
+            [1, 0, 0],
+            [0, cos_x, -sin_x],
+            [0, sin_x, cos_x],
+        ]
+    )
+
+    rotation_y = np.array(
+        [
+            [cos_y, 0, sin_y],
+            [0, 1, 0],
+            [-sin_y, 0, cos_y],
+        ]
+    )
+
+    rotation_z = np.array(
+        [
+            [cos_z, -sin_z, 0],
+            [sin_z, cos_z, 0],
+            [0, 0, 1],
+        ]
+    )
+
+    return rotation_z @ rotation_y @ rotation_x
+
+
+def _augment_circle(movement: Movement) -> Movement:
+    """Apply a random 3D rotation (and occasional isotropic scaling) to preserve circular characteristics."""
+    rotation_matrix = _initialize_random_rotation_matrix()
+    coords = np.array(movement, dtype=float)
+    rotated = coords @ rotation_matrix.T
+
+    if random.random() < 0.5:
+        rotated = _scale_movement(
+            list(map(tuple, rotated.astype(int))),
+            isotropic=True,
+            margin=DEFAULT_ISOTROPIC_MARGIN,
+        )
+        rotated = np.array(rotated, dtype=float)
+
+    return [
+        (int(round(point[0])), int(round(point[1])), int(round(point[2])))
+        for point in rotated
+    ]
+
+
+def _augment_diagonal_left(movement: Movement) -> Movement:
+    return _random_movement_transformation(
+        movement, isotropic=True, margin=DEFAULT_ISOTROPIC_MARGIN
+    )
+
+
+def _augment_diagonal_right(movement: Movement) -> Movement:
+    return _random_movement_transformation(
+        movement, isotropic=True, margin=DEFAULT_ISOTROPIC_MARGIN
+    )
+
+
+def _augment_horizontal(movement: Movement) -> Movement:
+    return _random_movement_transformation(
+        movement, isotropic=True, margin=DEFAULT_ISOTROPIC_MARGIN / 2
+    )
+
+
+def _augment_vertical(movement: Movement) -> Movement:
+    return _random_movement_transformation(
+        movement, isotropic=True, margin=DEFAULT_ISOTROPIC_MARGIN
+    )
+
+
+CLASS_AUGMENTERS: dict[str, Augmenter] = {
+    "circle": _augment_circle,
+    "diagonal_left": _augment_diagonal_left,
+    "diagonal_right": _augment_diagonal_right,
+    "horizontal": _augment_horizontal,
+    "vertical": _augment_vertical,
+}
+
+
+def augment_movement(movement: Movement, label: str) -> Movement:
+    """Augment a movement using the class-specific strategy."""
+    augmenter = CLASS_AUGMENTERS[label]
+    return augmenter(movement)
