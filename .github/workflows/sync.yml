@@ -1,8 +1,8 @@
 name: Sync with Upstream
 
 on:
-  schedule:
-    - cron: '0 */1 * * *'  # sync once per hour
+  #schedule:
+  #  - cron: '0 */1 * * *'  # sync once per hour
   workflow_dispatch:        # allow manual trigger
 
 jobs:
