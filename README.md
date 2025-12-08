@@ -2,6 +2,33 @@
 
 Classify 3D movement trajectories (circle, diagonal left/right, horizontal, vertical) using handcrafted features and a Random Forest classifier. The same model powers both the full training script and the demo predictor.
 
+## Feature Representation
+
+Each movement trajectory is transformed into a 42-dimensional handcrafted feature vector capturing its geometric and kinematic structure. The feature set includes:
+
+- **Total per-axis displacement** and full 3D **path length**
+- **Extreme-point axis lengths** (maximal span in x/y/z) and **normalized axis-direction vectors**
+- **Peak displacements** from the starting position along each axis
+- **Bounding-box extents** and **aspect-ratios** across all axis pairs
+- **Per-axis movement fractions** and directional balance terms
+- **Loopiness** (ratio of path length to straight-line axis length) to distinguish curved from linear motions
+- **Radius statistics** (mean and variance of radial distances) for detecting circular trajectories
+- Additional squared and cross-axis terms to capture nonlinear and correlated spatial effects
+
+All features are translation-invariant and robust to noise, providing strong geometric separation between circle, diagonal, horizontal, and vertical classes.
+
+## Hyperparameter Selection
+
+Model hyperparameters were selected using `GridSearchCV` with 5-fold cross-validation on the training portion of the labeled dataset.  
+The search explored different model complexities (tree depth, number of estimators), regularization strengths (minimum samples per split/leaf), and feature subsampling strategies.
+
+The best configuration –  
+`n_estimators=200`, `max_depth=7`, `max_features="sqrt"`, `min_samples_leaf=1`, `min_samples_split=2` –  
+demonstrated stable performance across development and test sets, indicating good generalization.
+
+For the final demo model, these hyperparameters are fixed and the classifier is retrained on **all** available labeled data to maximize predictive performance on unseen trajectories.
+
+
 ## Setup
 ```bash
 python -m venv .venv
@@ -42,5 +69,4 @@ Both scripts assume you run them from the repo root so imports resolve (`python 
 - `src/demo.py` – train RF and predict unlabeled demo files
 
 ## Notes
-- Plots require a display; on headless runs set a non-interactive backend (e.g., `MPLBACKEND=Agg`) to avoid errors.
 - To refresh the environment: delete `.venv`, recreate it, reinstall from the requirements files.
